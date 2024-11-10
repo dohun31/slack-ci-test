@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: ["main"]
     paths:
-      - "public/loacles/en/common.json"
+      - "public/locales/en/common.json"
 
 jobs:
   notify:
