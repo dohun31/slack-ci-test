@@ -18,7 +18,7 @@ jobs:
         id: get_diff
         run: |
           git fetch origin ${{ github.event.pull_request.base.ref }}
-          git diff origin/${{ github.event.pull_request.base.ref }}...${{ github.sha }} -- public/locales/en/common.json > diff.txt || true
+          git diff origin/${{ github.event.pull_request.base.ref }} -- public/locales/en/common.json > diff.txt || true
           echo "DIFF<<EOF" >> $GITHUB_ENV
           cat diff.txt >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
