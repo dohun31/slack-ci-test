@@ -33,11 +33,10 @@ jobs:
                 [
                   {
                     "type": "section",
-                    "text": ${{ env.DIFF}}
+                    "text": "${{ env.DIFF }}"
                   }
                 ]
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
-          DIFF: ${{ steps.git-diff-action.outputs.json-diff-path }}
