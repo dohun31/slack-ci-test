@@ -15,30 +15,40 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Get the diff of common.js
-        id: get_diff
+      - name: Get git diff content (+, -)
+        id: get-diff
         run: |
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          git diff origin/${{ github.event.pull_request.base.ref }}${{ github.sha }} -- ./public/locales/en/common.js > diff.txt || true
-          echo "DIFF<<EOF" >> $GITHUB_ENV
-          cat diff.txt >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-      - name: Send notification to Slack
-        id: slack
-        uses: slackapi/slack-github-action@v1.27.0
-        with: |
-          {
-            "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
-            "blocks": [
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": "The file common.js has been changed in a pull request:\n\n Diff:\n```${{ env.DIFF }}```"
-                }
-              }
-            ]
-          }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
+          # git diff에서 +와 -로 시작하는 라인만 가져옴 (변경된 부분)
+          DIFF_OUTPUT=$(git diff main -- ./public/locales/en/common.json | grep -E '^\+|^-')
+          echo "diff-output=$DIFF_OUTPUT" >> $GITHUB_ENV
+
+      - name: Show diff content
+        run: |
+          echo "Diff Content:"
+          echo "$diff-output"
+        # id: get_diff
+        # run: |
+        #   git fetch origin ${{ github.event.pull_request.base.ref }}
+        #   git diff origin/${{ github.event.pull_request.base.ref }}${{ github.sha }} -- ./public/locales/en/common.js > diff.txt || true
+        #   echo "DIFF<<EOF" >> $GITHUB_ENV
+        #   cat diff.txt >> $GITHUB_ENV
+        #   echo "EOF" >> $GITHUB_ENV
+      # - name: Send notification to Slack
+      #   id: slack
+      #   uses: slackapi/slack-github-action@v1.27.0
+      #   with: |
+      #     {
+      #       "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
+      #       "blocks": [
+      #         {
+      #           "type": "section",
+      #           "text": {
+      #             "type": "mrkdwn",
+      #             "text": "The file common.js has been changed in a pull request:\n\n Diff:\n```${{ env.DIFF }}```"
+      #           }
+      #         }
+      #       ]
+      #     }
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #     SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
