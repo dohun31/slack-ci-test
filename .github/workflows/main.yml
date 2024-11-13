@@ -1,44 +1,63 @@
 name: Notify Slack on PR Changes
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
-  push:
-    branches: ["main"]
   pull_request:
     branches: ["main"]
+    paths:
+      - "public/locales/en/common.json"
 
 jobs:
   notify:
     runs-on: ubuntu-latest
-    name: Send
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Get the diff of common.js
-        id: get_diff
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get and format diff
+        id: diff
         run: |
-          git fetch origin ${{ github.event.pull_request.base.ref }}
-          git diff origin/${{ github.event.pull_request.base.ref }}${{ github.sha }} -- ./public/locales/en/common.js > diff.txt || true
-          echo "DIFF<<EOF" >> $GITHUB_ENV
-          cat diff.txt >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          # Get diff and remove diff markers
+          git diff origin/${{ github.event.pull_request.base.ref }} -- public/locales/en/common.json |
+          grep -E '^[+-][^+-]' |
+          # Remove quotes and format with newlines
+          sed 's/"//g' |
+          sed 's/$/\\n/' |
+          tr -d '\n' > formatted_diff.txt
+          
+          # Save to environment variable
+          echo "FORMATTED_DIFF=$(cat formatted_diff.txt)" >> $GITHUB_ENV
+
       - name: Send notification to Slack
-        id: slack
         uses: slackapi/slack-github-action@v1.27.0
-        with: |
-          {
-            "text": "GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url || github.event.head_commit.url }}",
-            "blocks": [
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": "The file common.js has been changed in a pull request:\n\n Diff:\n```${{ env.DIFF }}```"
+        with:
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🔔 JSON 변경 알림"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": ":magic_wand: *커밋한 사람:* ${{ steps.slack-mention.outputs.emails-mention }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Changes in common.json:*\n```${{ env.FORMATTED_DIFF }}```"
+                  }
                 }
-              }
-            ]
-          }
+              ]
+            }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
